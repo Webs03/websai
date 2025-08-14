@@ -4,8 +4,7 @@ import dotenv from "dotenv";
 import stringSimilarity from "string-similarity";
 import cors from "cors";
 
-dotenv.config(); console.log("OPENROUTER_API_KEY:", process.env.OPENROUTER_API_KEY ? "✅ Loaded" : "❌ Missing");
-
+dotenv.config();
 
 const app = express();
 app.use(express.json());
@@ -13,11 +12,15 @@ app.use(cors());
 
 const PORT = process.env.PORT || 5000;
 
+// ✅ Only free models are listed first
 const MODELS = [
-  "meta-llama/llama-3.1-8b-instruct:free",
   "mistralai/mistral-7b-instruct:free",
-  "nousresearch/nous-capybara-7b:free"
+  "meta-llama/llama-3.1-8b-instruct:free"
 ];
+
+// Log key and models to verify Railway deployment
+console.log("OPENROUTER_API_KEY:", process.env.OPENROUTER_API_KEY ? "✅ Loaded" : "❌ Missing");
+console.log("MODELS array:", MODELS);
 
 async function getAIResponse(message) {
   for (const model of MODELS) {
@@ -35,7 +38,8 @@ async function getAIResponse(message) {
         })
       });
 
-      const data = await response.json(); console.log("📩 Raw response:", data);
+      const data = await response.json();
+      console.log("Raw response:", JSON.stringify(data));
 
       if (data?.choices?.[0]?.message?.content) {
         console.log(`✅ Success with model: ${model}`);
@@ -47,6 +51,7 @@ async function getAIResponse(message) {
       console.error(`❌ Error with model ${model}:`, err.message);
     }
   }
+
   throw new Error("All models failed");
 }
 
