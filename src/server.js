@@ -1,8 +1,8 @@
-const express = require("express");
-const fetch = require("node-fetch");
-const dotenv = require("dotenv");
-const stringSimilarity = require("string-similarity");
-const cors = require("cors");
+import express from "express";
+import fetch from "node-fetch";
+import dotenv from "dotenv";
+import stringSimilarity from "string-similarity";
+import cors from "cors";
 
 dotenv.config();
 
