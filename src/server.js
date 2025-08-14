@@ -1,16 +1,17 @@
 const express = require("express");
 const fetch = require("node-fetch");
 const dotenv = require("dotenv");
-dotenv.config();
 const stringSimilarity = require("string-similarity");
+const cors = require("cors");
+
+dotenv.config();
 
 const app = express();
 app.use(express.json());
-const cors = require("cors");
 app.use(cors());
 
+const PORT = process.env.PORT || 5000;
 
-// List of free models to try in order
 const MODELS = [
   "meta-llama/llama-3.1-8b-instruct:free",
   "mistralai/mistral-7b-instruct:free",
@@ -45,52 +46,25 @@ async function getAIResponse(message) {
       console.error(`❌ Error with model ${model}:`, err.message);
     }
   }
-
   throw new Error("All models failed");
 }
 
-// Chat route
-// Chat route
-// Install this first if you don't have it: npm install string-similarity
-
-// Chat route
 app.post("/chat", async (req, res) => {
   const { message } = req.body;
   const lowerMsg = message.toLowerCase();
 
-  // ✅ Core "meaning" triggers
   const creatorPhrases = [
-    "who created you",
-    "who are you",
-    "describe yourself",
-    "tell me about yourself",
-    "introduce yourself",
-    "i want to know more about you",
-    "who made you",
-    "who built you",
-    "who developed you",
-    "who invented you",
-    "who designed you",
-    "who programmed you",
-    "who is your creator",
-    "who is your owner",
-    "who is your founder",
-    "where do you come from",
-    "so its Edison Chazumbwa who made you",
-    "Who is Edison Chazumbwa",
-    "Do you know Edison Chazumbwa",
-    "who runs you",
-    "who produced you",
-    "who authored you",
-    "who coded you"
+    "who created you", "who are you", "describe yourself", "tell me about yourself",
+    "introduce yourself", "i want to know more about you", "who made you",
+    "who built you", "who developed you", "who invented you", "who designed you",
+    "who programmed you", "who is your creator", "who is your owner",
+    "who is your founder", "where do you come from", "so its Edison Chazumbwa who made you",
+    "Who is Edison Chazumbwa", "Do you know Edison Chazumbwa", "who runs you",
+    "who produced you", "who authored you", "who coded you"
   ];
 
-  // Check exact or fuzzy match
   const match = creatorPhrases.some(phrase => {
-    // ✅ Exact substring match
     if (lowerMsg.includes(phrase)) return true;
-
-    // ✅ Fuzzy match threshold (0.7 = 70% similarity)
     const similarity = stringSimilarity.compareTwoStrings(lowerMsg, phrase);
     return similarity >= 0.7;
   });
@@ -101,7 +75,6 @@ app.post("/chat", async (req, res) => {
     });
   }
 
-  // If not a match, continue to AI model
   try {
     const reply = await getAIResponse(message);
     res.json({ reply });
@@ -111,5 +84,4 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-// Start server
-app.listen(5000, () => console.log("✅ Server running on port 5000"));
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
