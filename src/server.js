@@ -4,7 +4,8 @@ import dotenv from "dotenv";
 import stringSimilarity from "string-similarity";
 import cors from "cors";
 
-dotenv.config();
+dotenv.config(); console.log("OPENROUTER_API_KEY:", process.env.OPENROUTER_API_KEY ? "✅ Loaded" : "❌ Missing");
+
 
 const app = express();
 app.use(express.json());
@@ -34,7 +35,7 @@ async function getAIResponse(message) {
         })
       });
 
-      const data = await response.json();
+      const data = await response.json(); console.log("📩 Raw response:", data);
 
       if (data?.choices?.[0]?.message?.content) {
         console.log(`✅ Success with model: ${model}`);
