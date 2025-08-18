@@ -39,7 +39,7 @@ async function getAIResponse(message) {
     });
     const data = await res.json();
     console.log("Groq Raw:", data);
-    return data.choices?.[0]?.message?.content || "⚠️ No response from Groq";
+    return data.choices?.[0]?.message?.content || "Daily free limit reached. Please try again later";
   }
 
   // Default: OpenRouter
@@ -57,7 +57,7 @@ async function getAIResponse(message) {
   });
   const data = await res.json();
   console.log("OpenRouter Raw:", data);
-  return data.choices?.[0]?.message?.content || "⚠️ No response from OpenRouter";
+  return data.choices?.[0]?.message?.content || "Daily free limit reached. Please try again later";
 }
 
 app.post("/api/chat", async (req, res) => {
