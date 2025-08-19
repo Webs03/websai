@@ -1,3 +1,4 @@
+// src/server.js
 import express from "express";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
@@ -5,13 +6,19 @@ import cors from "cors";
 import stringSimilarity from "string-similarity";
 
 dotenv.config();
+
 const app = express();
 app.use(express.json());
 app.use(cors());
 
 const PORT = process.env.PORT || 5000;
-const PROVIDER = process.env.PROVIDER || "openrouter";
 
+// ✅ Choose provider (set in .env as PROVIDER=gemini or openrouter)
+const PROVIDER = process.env.PROVIDER || "gemini";
+
+// API keys
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const creatorPhrases = [
   "who created you", "who are you", "describe yourself", "tell me about yourself",
   "introduce yourself", "i want to know more about you", "who made you",
@@ -22,50 +29,19 @@ const creatorPhrases = [
   "who produced you", "who authored you", "who coded you"
 ];
 
-// Function to call AI depending on provider
-async function getAIResponse(message) {
-  if (PROVIDER === "groq") {
-    console.log("🔗 Using Groq API");
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama3-70b-8192",
-        messages: [{ role: "user", content: message }],
-      }),
-    });
-    const data = await res.json();
-    console.log("Groq Raw:", data);
-    return data.choices?.[0]?.message?.content || "Daily free limit reached. Please try again later";
-  }
 
-  // Default: OpenRouter
-  console.log("🔗 Using OpenRouter API");
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "mistralai/mistral-7b-instruct:free",
-      messages: [{ role: "user", content: message }],
-    }),
-  });
-  const data = await res.json();
-  console.log("OpenRouter Raw:", data);
-  return data.choices?.[0]?.message?.content || "Daily free limit reached. Please try again later";
-}
+// --- Routes ---
 
+// Test route
+app.get("/", (req, res) => {
+  res.json({ status: "✅ Backend running", provider: PROVIDER });
+});
+
+// Chat route
 app.post("/api/chat", async (req, res) => {
-  try {
-    const { message } = req.body;
-    const lowerMsg = message.toLowerCase();
-
-    // ✅ Handle "creator" questions before calling AI
+  const { message } = req.body;
+  const lowerMsg = message.toLowerCase();
+  // ✅ Handle creator questions
     const match = creatorPhrases.some(phrase => {
       if (lowerMsg.includes(phrase)) return true;
       const similarity = stringSimilarity.compareTwoStrings(lowerMsg, phrase);
@@ -78,17 +54,67 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
-    // Otherwise, call AI provider
-    const reply = await getAIResponse(message);
-    res.json({ reply });
+  if (!message) {
+    return res.status(400).json({ reply: "⚠️ No message provided." });
+  }
 
-  } catch (err) {
-    console.error("Server error:", err);
-    res.status(500).json({ error: "Something went wrong." });
+  try {
+    let aiReply = "";
+
+    if (PROVIDER === "gemini") {
+      // --- Google Gemini ---
+      const response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: message }] }],
+          }),
+        }
+      );
+
+      const data = await response.json();
+      aiReply =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "⚠️ No response from Gemini.";
+    } 
+    
+    else if (PROVIDER === "openrouter") {
+      // --- OpenRouter ---
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-3.5-turbo", // change model if needed
+          messages: [{ role: "user", content: message }],
+        }),
+      });
+
+      const data = await response.json();
+      aiReply =
+        data?.choices?.[0]?.message?.content?.trim() ||
+        "⚠️ No response from OpenRouter.";
+    } 
+    
+    else {
+      aiReply = "⚠️ Invalid provider selected in .env (use 'gemini' or 'openrouter').";
+    }
+    
+
+    // ✅ Always return in the same format
+    res.json({ reply: aiReply });
+  } catch (error) {
+    console.error("Chat error:", error);
+    res.status(500).json({ reply: "⚠️ Error connecting to AI provider." });
   }
 });
 
+// --- Start Server ---
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
-  console.log(`👉 Active provider: ${PROVIDER}`);
+  console.log(`🤖 Active provider: ${PROVIDER}`);
 });
