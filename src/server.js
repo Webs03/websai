@@ -56,7 +56,7 @@ app.post("/api/chat", async (req, res) => {
   // ✅ Rate limit check
   if (messageLimits[sessionId] >= MAX_MESSAGES) {
     return res.json({
-      reply: "⚠️ Demo limit reached (5 free messages). Please come back later or contact Edison Chazumbwa for more."
+      reply: "⚠️ Demo session limit reached (5 free messages). Please come back later or contact Edison Chazumbwa for full version."
     });
   }
 
@@ -145,9 +145,8 @@ app.post("/api/chat", async (req, res) => {
     messageLimits[sessionId]++;
 
     // ✅ Add demo banner to all AI replies
-    const finalReply = `${aiReply}\n\n---\n🧪 *Demo powered by Gemini 1.5 Flash (5 free messages per session).*`;
-
-    res.json({ reply: finalReply });
+    
+   res.json({ reply: aiReply });
   } catch (error) {
     console.error("Chat error:", error);
     res.status(500).json({ reply: "⚠️ Something went wrong while processing your request. Please try again." });
